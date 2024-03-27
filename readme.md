@@ -9,7 +9,7 @@ trying to improve reverse-i-search with fuzzy search
 
 ## todo
 
+- scroll results so it can have all matching results
+- fix flickering when select changes on the list
 - copy to clipboard on press enter
 - shortcuts to navigate
-- fix flickering when select changes on the list
-- scroll results so it can have all matching results
