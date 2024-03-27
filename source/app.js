@@ -57,7 +57,7 @@ function readHistory() {
 	return Array.from(commandsSet).reverse();
 }
 
-const HEIGHT = 30;
+const HEIGHT = 12;
 export default function App() {
 	const histories = readHistory();
 	const [query, setQuery] = useState('');
@@ -109,7 +109,7 @@ export default function App() {
 			<Box flexDirection="column" borderStyle="round">
 				<Box flexDirection="column">
 					<Text bold>
-						Search history: <TextInput value={query} onChange={setQuery} />
+						search: <TextInput value={query} onChange={setQuery} />
 					</Text>
 				</Box>
 			</Box>
@@ -125,7 +125,7 @@ export default function App() {
 			</Box>
 			<Box flexDirection="column" borderStyle="round">
 				<Box flexDirection="column">
-					<Text>{status}</Text>
+					<Text>status:{status}</Text>
 				</Box>
 			</Box>
 		</>
