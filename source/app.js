@@ -7,7 +7,6 @@ import {Box, Text, useInput, useApp} from 'ink';
 import TextInput from 'ink-text-input';
 import {useDebounce} from '@uidotdev/usehooks';
 import Fuse from 'fuse.js';
-import os from 'os';
 import {exec} from 'child_process';
 
 function copyToClipboard(text) {
@@ -101,7 +100,7 @@ export default function App() {
 		if (key.return) {
 			const selected = fuzzyHistories[focusIndex].item;
 			copyToClipboard(selected);
-			setStatus(`Copied: ${selected}`);
+			setStatus(`${selected}`);
 		}
 	});
 
@@ -118,7 +117,8 @@ export default function App() {
 				<Box flexDirection="column">
 					{fuzzyHistories.map((history, index) => (
 						<Text key={index} color="green" inverse={index === focusIndex}>
-							({history?.score?.toFixed(4)}){history.item}
+							{/* ({history?.score?.toFixed(4)}) */}
+							{history.item}
 						</Text>
 					))}
 				</Box>
