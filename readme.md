@@ -12,4 +12,4 @@ trying to improve reverse-i-search with fuzzy search
 - copy to clipboard on press enter
 - shortcuts to navigate
 - fix flickering when select changes on the list
-- change box height dynamically
+- scroll results so it can have all matching results

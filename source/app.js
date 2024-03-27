@@ -3,10 +3,9 @@ import os from 'os';
 import path from 'path';
 
 import React, {useEffect, useState} from 'react';
-import {Box, Text, useInput, useApp} from 'ink';
+import {Box, Text, useInput, useApp, useStdout} from 'ink';
 import TextInput from 'ink-text-input';
 import {useDebounce} from '@uidotdev/usehooks';
-import Fuse from 'fuse.js';
 import {exec} from 'child_process';
 
 function copyToClipboard(text) {
@@ -26,24 +25,6 @@ function copyToClipboard(text) {
 	});
 }
 
-const fuseOptions = {
-	// isCaseSensitive: false,
-	includeScore: true,
-	sortFn: (a, b) => b.score - a.score,
-	// shouldSort: true,
-	includeMatches: true,
-	// findAllMatches: false,
-	// minMatchCharLength: 1,
-	// location: 0,
-	// threshold: 0.6,
-	// distance: 100,
-	// useExtendedSearch: false,
-	// ignoreLocation: false,
-	// ignoreFieldNorm: false,
-	// fieldNormWeight: 1,
-	// keys: ['title', 'author.firstName'],
-};
-
 function readHistory() {
 	const historyPath = path.join(os.homedir(), '.zsh_history');
 	const history = fs.readFileSync(historyPath, {encoding: 'utf8'}).split('\n');
@@ -57,77 +38,97 @@ function readHistory() {
 	return Array.from(commandsSet).reverse();
 }
 
-const HEIGHT = 12;
+const HEIGHT = 32;
 export default function App() {
-	const histories = readHistory();
+	const [history, setHistory] = useState([]);
 	const [query, setQuery] = useState('');
-	const [focusIndex, setFocusIndex] = useState(1);
+	const [focusIndex, setFocusIndex] = useState(0);
 	const debouncedQuery = useDebounce(query, 300);
 	const {exit} = useApp();
-	const fuse = new Fuse(histories, fuseOptions);
-	const [fuzzyHistories, setFuzzyHistories] = useState(histories);
 	const [status, setStatus] = useState('');
+	const [searchResult, setSearchResult] = useState([]);
+	const {stdout} = useStdout();
+	const [consoleHeight, setConsoleHeight] = useState(stdout.rows || HEIGHT);
 
 	useEffect(() => {
-		setFocusIndex(1);
+		setHistory(readHistory());
+	}, []);
+
+	useEffect(() => {
+		function handleResize() {
+			setConsoleHeight(stdout.rows || HEIGHT);
+		}
+		handleResize();
+		process.stdout.on('resize', handleResize);
+
+		return () => {
+			process.stdout.off('resize', handleResize);
+		};
+	}, [stdout.rows]);
+
+	useEffect(() => {
+		setFocusIndex(0);
 		setStatus('');
-		setFuzzyHistories(fuse.search(debouncedQuery).reverse().slice(0, HEIGHT));
+		if (debouncedQuery.trim().length > 0) {
+			setSearchResult(history.filter(line => line.includes(debouncedQuery)));
+		} else {
+			setSearchResult([]);
+		}
 	}, [debouncedQuery]);
 
 	useInput((input, key) => {
 		if (key.escape) {
 			exit();
 		}
-		if (fuzzyHistories.length <= 0) return;
-
-		// TODO somehow index inside fuzzyHistories.map start from 1 not 0
+		if (searchResult.length <= 0) return;
 
 		if (key.upArrow) {
-			if (focusIndex - 1 <= 0) {
-				setFocusIndex(fuzzyHistories.length - 1);
+			if (focusIndex - 1 < 0) {
+				setFocusIndex(searchResult.length - 1);
 			} else {
 				setFocusIndex(focusIndex - 1);
 			}
 		}
 		if (key.downArrow) {
-			if (focusIndex + 1 >= fuzzyHistories.length) {
-				setFocusIndex(1);
+			if (focusIndex + 1 >= searchResult.length) {
+				setFocusIndex(0);
 			} else {
 				setFocusIndex(focusIndex + 1);
 			}
 		}
 
 		if (key.return) {
-			const selected = fuzzyHistories[focusIndex].item;
-			copyToClipboard(selected);
-			setStatus(`${selected}`);
+			const selected = searchResult[focusIndex];
+			// copyToClipboard(selected);
+			if (selected) {
+				setStatus(`${selected}`);
+			}
 		}
 	});
 
 	return (
-		<>
-			<Box flexDirection="column" borderStyle="round">
+		<Box height={consoleHeight} flexDirection="column" borderStyle="round">
+			<Box flexShrink={0} flexDirection="column" borderStyle="round">
 				<Box flexDirection="column">
-					<Text bold>
+					<Text>
 						search: <TextInput value={query} onChange={setQuery} />
 					</Text>
 				</Box>
 			</Box>
-			<Box height={HEIGHT} flexDirection="column" borderStyle="round">
-				<Box flexDirection="column">
-					{fuzzyHistories.map((history, index) => (
+			<Box flexGrow={1} flexDirection="column" borderStyle="round">
+				<Box overflowY="hidden" flexDirection="column">
+					{searchResult.map((history, index) => (
 						<Text key={index} color="green" inverse={index === focusIndex}>
-							{/* ({history?.score?.toFixed(4)}) */}
-							{history.item}
+							{history}
 						</Text>
 					))}
 				</Box>
 			</Box>
-			<Box flexDirection="column" borderStyle="round">
+			<Box flexShrink={0} flexDirection="column" borderStyle="round">
 				<Box flexDirection="column">
 					<Text>status:{status}</Text>
 				</Box>
 			</Box>
-		</>
+		</Box>
 	);
 }
